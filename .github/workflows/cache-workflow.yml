@@ -1,0 +1,53 @@
+name: Cache Dependencies Workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: cache-3c705f0
+          restore-keys: |
+            cache-3c705f0-
+      
+      - name: prime-cache-3c705f0
+        run: |
+          echo "Cache hit status: ${{ steps.cache-deps.outputs.cache-hit }}"
+          if [ "${{ steps.cache-deps.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ Cache HIT - Dependencies restored from cache"
+          else
+            echo "❌ Cache MISS - Will create new cache"
+          fi
+      
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          # Create a package.json if it doesn't exist
+          if [ ! -f package.json ]; then
+            npm init -y
+            npm install express
+          else
+            npm ci
+          fi
+      
+      - name: Display success
+        run: echo "Workflow completed with cache setup!"
